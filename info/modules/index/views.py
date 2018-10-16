@@ -1,4 +1,6 @@
-from . import  index_blu
+from info import redis_store
+from . import index_blu
+
 
 @index_blu.route('/')
 def index():
@@ -10,4 +12,6 @@ def index():
     # current_app.logger.error('测试error')
     # current_app.logger.fatal('测试fatal')
 
+    # 向 redis 中保存一个字 name itcast
+    redis_store.set('name', 'itcast')
     return 'index'

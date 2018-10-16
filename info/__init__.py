@@ -6,19 +6,17 @@ from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from redis import StrictRedis
-from info.modules.index import index_blu
 from config import Config
 
 # 初始化数据库
 # 在 flask 很多扩展里面都可以先初始化扩展的对象然后去调用 init_app 方法去初始化
 
 
-
 db = SQLAlchemy()
+redis_store = None  # type: StrictRedis
 
 
 def setup_log(config_name):
-
     # 设置日志的记录等级
     logging.basicConfig(level=Config[config_name].LOG_LEVEL)  # 调试debug级
     # 创建日志记录器，指明日志保存的路径、每个日志文件的最大大小、保存的日志文件个数上限
@@ -50,7 +48,6 @@ def create_app(config_name):
     Session(app)
 
     # 注册蓝图
+    from info.modules.index import index_blu
     app.register_blueprint(index_blu)
     return app
-
-

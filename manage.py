@@ -3,7 +3,6 @@ from flask_script import Manager
 from flask import session, current_app
 from info import db, create_app
 
-
 # manager.py 是程序的启动入口，只关心启动的相关参数以及内容，不关心具体
 # 只创建 app 或者相关业务逻辑
 
@@ -16,7 +15,6 @@ manager = Manager(app)
 Migrate(app, db)
 # 将迁移命令添加到 manager 中
 manager.add_command('db', MigrateCommand)
-
 
 if __name__ == '__main__':
     manager.run()

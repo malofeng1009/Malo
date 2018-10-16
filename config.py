@@ -21,14 +21,13 @@ class Config(object):
     SESSION_REDIS = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)  # 使用 redis 的实例
     PERMANENT_SESSION_LIFETIME = 84600 * 2  # session 的有效期，单位是秒
 
-
     # 设置日志等级
     LOG_LEVEL = logging.DEBUG
+
 
 class DevelopmentConfig(Config):
     '''开发环境下的配置'''
     DEBUG = True
-
 
 
 class ProductionConfig(Config):
@@ -36,14 +35,16 @@ class ProductionConfig(Config):
     DEBUG = False
     LOG_LEVEL = logging.WARNING
 
+
 class TestingConfig(Config):
     '''测试环境下的配置'''
     DEBUG = True
 
     TESTING = True
 
+
 Config = {
-    'development' : DevelopmentConfig,
-    'production' : ProductionConfig,
-    'testing' : TestingConfig
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig
 }

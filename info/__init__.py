@@ -7,19 +7,28 @@ from redis import StrictRedis
 
 from config import Config
 
-app = Flask(__name__)
-
-# 加载配置
-app.config.from_object(Config['development'])
-
 # 初始化数据库
-db = SQLAlchemy(app)
+db = SQLAlchemy()
+redis_store = None
 
-redis_store = StrictRedis(host=Config['development'].REDIS_HOST, port=Config['development'].REDIS_PORT)
-# 开启当前项目 CSRF 保护
-CSRFProtect(app)
+def create_app(config_name):
+    '''通过传入不同配置名i，初始化器对应配置的应用实例'''
+    app = Flask(__name__)
 
-Session(app)
+    # 加载配置
+    app.config.from_object(Config[config_name])
 
+    # 配置数据库
+    db.init_app(app)
+
+    # 配置redis
+    global redis_store
+    redis_store = StrictRedis(host=Config[config_name].REDIS_HOST, port=Config[config_name].REDIS_PORT)
+    # 开启当前项目 CSRF 保护
+    CSRFProtect(app)
+
+    Session(app)
+
+    return app
 
 

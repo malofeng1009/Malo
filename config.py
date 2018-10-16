@@ -3,7 +3,6 @@ from redis import StrictRedis
 
 class Config(object):
     '''项目的配置'''
-    DEBUG = True
 
     SECRET_KEY = 'iY3RJqHa9Axold8STiZMHzFKmqTJZj5eoTYGFvErS02Ys/WUGfMTbXfUM9DuXUbN'
 
@@ -20,3 +19,27 @@ class Config(object):
     SESSION_USE_SIGNER = True  # 开启 session 签名
     SESSION_REDIS = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)  # 使用 redis 的实例
     PERMANENT_SESSION_LIFETIME = 84600 * 2  # session 的有效期，单位是秒
+
+
+class DevelopmentConfig(Config):
+    '''开发环境下的配置'''
+    DEBUG = True
+
+
+
+class ProductionConfig(Config):
+    '''生产环境下的配置'''
+    DEBUG = False
+
+
+class TestingConfig(Config):
+    '''测试环境下的配置'''
+    DEBUG = True
+
+    TESTING = True
+
+Config = {
+    'development' : DevelopmentConfig,
+    'production' : ProductionConfig,
+    'testing' : TestingConfig
+}

@@ -10,13 +10,16 @@ from config import Config
 app = Flask(__name__)
 
 # 加载配置
-app.config.from_object(Config)
+app.config.from_object(Config['development'])
 
 # 初始化数据库
 db = SQLAlchemy(app)
 
-redis_store = StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT)
+redis_store = StrictRedis(host=Config['development'].REDIS_HOST, port=Config['development'].REDIS_PORT)
 # 开启当前项目 CSRF 保护
 CSRFProtect(app)
 
 Session(app)
+
+
+

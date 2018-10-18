@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from redis import StrictRedis
 from config import Config
-
 # 初始化数据库
 # 在 flask 很多扩展里面都可以先初始化扩展的对象然后去调用 init_app 方法去初始化
 
@@ -48,6 +47,8 @@ def create_app(config_name):
     Session(app)
 
     # 注册蓝图
+
     from info.modules.index import index_blu
+
     app.register_blueprint(index_blu)
     return app

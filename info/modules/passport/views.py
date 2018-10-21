@@ -10,7 +10,7 @@ from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
 from . import  passport_blu
 
-@passport_blu.route('/login', method=['POST'])
+@passport_blu.route('/login', methods=['POST'])
 def login():
     '''
     1.获取参数
@@ -21,10 +21,10 @@ def login():
     :return:
     '''
     # 1.获取参数
-    params_dict = request.josn
+    params_dict = request.json
 
     mobile = params_dict.get('mobile')
-    password = passport_blu.gt('password')
+    password = params_dict.get('password')
 
     # 2校验参数
     if not all([mobile, password]):
@@ -34,7 +34,7 @@ def login():
         return jsonify(error=RET.PARAMERR, errmsg='手机格式不正确')
     # 3.校验密码是否正确
     try:
-        user = User.query.filter(mobile == mobile).first()
+        user = User.query.filter(User.mobile == mobile).first()
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(error=RET.DBERR, errmsg='数据查询错误')

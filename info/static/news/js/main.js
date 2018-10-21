@@ -119,6 +119,10 @@ $(function(){
             url:"/passport/login",
             method: "post",
             data: JSON.stringify(params),
+             // 在 headers 中 添加csrf_token的随机值
+            headers:{
+                'x-csrf_token':getCookie('csrf_token')
+            },
             contentType: "application/json",
             success: function (resp) {
                 if (resp.error == "0") {
@@ -241,7 +245,7 @@ function sendSMSCode() {
         // 请求参数的数据类型
         contentType: "application/json",
         success: function (response) {
-            if (response.errno == "0") {
+            if (response.error == "0") {
                 // 代表发送成功
                 var num = 60
                 var t = setInterval(function () {

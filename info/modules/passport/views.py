@@ -10,6 +10,20 @@ from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
 from . import  passport_blu
 
+@passport_blu.route('/logout', methods=['GET'])
+def logout():
+    '''
+    退出登录
+    :return:
+    '''
+    # pop 是移除 session 中的数据dict
+    # pop 会有一个返回值，如果要移除的key不存在，就返回None
+    session.pop('user_id', None)
+    session.pop('mobile', None)
+    session.pop('nick_name', None)
+
+    return jsonify(error=RET.OK, errmsg='退出成功')
+
 @passport_blu.route('/login', methods=['POST'])
 def login():
     '''
@@ -48,6 +62,14 @@ def login():
     session['user_id'] = user.id
     session['mobile'] = user.mobile
     session['nick_name'] = user.nick_name
+    # 设置当前用户最后一次登录时间
+    user.last_login = datetime.now()
+    # 如果在视图函数中，对模型身上的属性有修改，那么需要commit提交到数据库
+    #　但其实可以自己不用去写，db.session.commit(), 前提是对SQLAchemy有过相关配置
+    # try:
+    #     db.session.commit()
+    # except Exception as e:
+    #     current_app.logger.error(e)
     # 5.响应
     return jsonify(error=RET.OK, errmsg='登录成功')
 
@@ -166,14 +188,6 @@ def send_sms_code():
         return jsonify(error=RET.DBERR, errmsg='数据保存失败')
     # 7.告知发送结果
     return jsonify(error=RET.OK, errmsg='发送成功')
-
-
-
-
-
-
-
-
 
 @passport_blu.route('/image_code')
 def get_image_code():

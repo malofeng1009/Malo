@@ -220,6 +220,7 @@ function sendSMSCode() {
         return;
     }
 
+    
     // 发送短信验证码
     var params = {
             'mobile' : mobile,
@@ -278,6 +279,11 @@ function fnChangeMenu(n) {
         // 执行 a 标签的点击事件
         $li.eq(n).find('a')[0].click()
     }
+}
+function logout(){
+    $.get('/passport/logout', function () {
+        location.reload()
+    })
 }
 
 // 一般页面的iframe的高度是660

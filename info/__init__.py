@@ -10,7 +10,7 @@ from redis import StrictRedis
 from config import Config
 # 初始化数据库
 # 在 flask 很多扩展里面都可以先初始化扩展的对象然后去调用 init_app 方法去初始化
-
+from info.utils.common import do_index_class
 
 db = SQLAlchemy()
 redis_store = None  # type: StrictRedis
@@ -51,12 +51,14 @@ def create_app(config_name):
     Session(app)
 
     @app.after_request
-    def after_request(reasponse):
+    def after_request(response):
         # 生成一个随机的 csrf_token 的值
         csrf_token= generate_csrf()
         # 设置一个 cookie
-        reasponse.set_cookie('csrf_token', csrf_token)
-        return  reasponse
+        response.set_cookie('csrf_token', csrf_token)
+        return  response
+    # 添加模板过滤器
+    app.add_template_filter(do_index_class,'index_class')
     # 注册蓝图
 
     from info.modules.index import index_blu

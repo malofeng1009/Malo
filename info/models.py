@@ -54,7 +54,16 @@ class User(BaseModel, db.Model):
                                 secondaryjoin=id == tb_user_follows.c.follower_id,
                                 backref=db.backref('followed', lazy='dynamic'),
                                 lazy='dynamic')
+    @property
+    def password(self):
+        raise AttributeError('当前属性不允许被读取')
 
+    @password.setter
+    def password(self, value):
+        self.password_hash = generate_password_hash(value)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
     # 当前用户所发布的新闻
     news_list = db.relationship('News', backref='user', lazy='dynamic')
 

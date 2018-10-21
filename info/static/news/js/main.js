@@ -4,7 +4,7 @@ $(function(){
 	$('.login_btn').click(function(){
         $('.login_form_con').show();
 	})
-	
+
 	// 点击关闭按钮关闭登录框或者注册框
 	$('.shutoff').click(function(){
 		$(this).closest('form').hide();
@@ -38,7 +38,7 @@ $(function(){
 	})
 
 	// 输入框失去焦点，如果输入框为空，则提示文字下移
-	$('.form_group input').on('blur focusout',function(){
+	$('.form_group input').on   ('blur focusout',function(){
 		$(this).parent().removeClass('hotline');
 		var val = $(this).val();
 		if(val=='')
@@ -72,7 +72,7 @@ $(function(){
 	var sHash = window.location.hash;
 	if(sHash!=''){
 		var sId = sHash.substring(1);
-		var oNow = $('.'+sId);		
+		var oNow = $('.'+sId);
 		var iNowIndex = oNow.index();
 		$('.option_list li').eq(iNowIndex).addClass('active').siblings().removeClass('active');
 		oNow.show().siblings().hide();
@@ -118,12 +118,12 @@ $(function(){
         // 阻止默认提交操作
         e.preventDefault()
 
-		// 取到用户输入的内容
+        // 取到用户输入的内容
         var mobile = $("#register_mobile").val()
         var smscode = $("#smscode").val()
         var password = $("#register_password").val()
 
-		if (!mobile) {
+        if (!mobile) {
             $("#register-mobile-err").show();
             return;
         }
@@ -137,14 +137,36 @@ $(function(){
             return;
         }
 
-		if (password.length < 6) {
+        if (password.length < 6) {
             $("#register-password-err").html("密码长度不能少于6位");
             $("#register-password-err").show();
             return;
         }
 
         // 发起注册请求
+        var params = {
+            'mobile': mobile,
+            'smscode': smscode,
+            'password': password
+        }
 
+        $.ajax({
+            url: '/passport/register',
+            type: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify(params),
+            success: function (resp) {
+                if (resp.error == '0') {
+                    // 代表注册成功
+                    location.reload()
+                } else {
+                    // 代表注册失败
+                    alert(resp.errmsg)
+                    $('#register-password-err').html(resp.errmsg)
+                    $('#register-password-err').show()
+                }
+            }
+        })
     })
 })
 
@@ -180,8 +202,55 @@ function sendSMSCode() {
     }
 
     // TODO 发送短信验证码
-}
+    var params = {
+            'mobile' : mobile,
+            'image_code':imageCode,
+            'image_code_id':imageCodeId
+    }
+        // 发起短信请求
+    $.ajax({
+        // 请求地址
+        url: "/passport/sms_code",
+        // 请求方式
+        type: "post",
+        // 请求参数
+        data: JSON.stringify(params),
+        headers: {
+            "X-CSRFToken": getCookie('csrf_token')
+        },
+        // 请求参数的数据类型
+        contentType: "application/json",
+        success: function (response) {
+            if (response.errno == "0") {
+                // 代表发送成功
+                var num = 60
+                var t = setInterval(function () {
 
+                    if (num == 1) {
+                        // 代表倒计时结束
+                        // 清除倒计时
+                        clearInterval(t)
+
+                        // 设置显示内容
+                        $(".get_code").html("点击获取验证码")
+                        // 添加点击事件
+                        $(".get_code").attr("onclick", "sendSMSCode();");
+                    }else {
+                        num -= 1
+                        // 设置 a 标签显示的内容
+                        $(".get_code").html(num + "秒")
+                    }
+                }, 1000)
+            }else {
+                // 代表发送失败
+                alert(response.errmsg)
+                $(".get_code").attr("onclick", "sendSMSCode();");
+            }
+        }
+
+    })
+
+}
 // 调用该函数模拟点击左侧按钮
 function fnChangeMenu(n) {
     var $li = $('.option_list li');
@@ -212,7 +281,7 @@ function generateUUID() {
     var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = (d + Math.random()*16)%16 | 0;
         d = Math.floor(d/16);
-        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+        return (c =='x' ? r : (r&0x3|0x8)).toString(16);
     });
     return uuid;
 }

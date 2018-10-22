@@ -1,4 +1,4 @@
-from flask import render_template, current_app, session, g
+from flask import render_template, current_app, session, g, abort
 
 from info.constants import CLICK_RANK_MAX_NEWS
 from info.models import News, Category, User
@@ -28,8 +28,25 @@ def news_blu(news_id):
     # 遍历对象列表，将对象的字典添加到字典列表当中
     for news in news_list:
         news_dict_li.append(news.to_basic_dict())
+
+
+    # 查询新闻数据
+    news = None
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not  news:
+        abort(404)
+
+    # 更新新闻的点击次数
+    news.clicks += 1
+
+
     data ={
         'user': user.to_dict() if user else None,
         'news_dict_li': news_dict_li,
+        'news':news.to_dict()
     }
     return render_template('news/detail.html', data=data)

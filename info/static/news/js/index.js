@@ -42,7 +42,17 @@ $(function () {
         var nowScroll = $(document).scrollTop();
 
         if ((canScrollHeight - nowScroll) < 100) {
-            // TODO 判断页数，去更新新闻数据
+            // 判断页数，去更新新闻数据
+            if (!data_querying){
+                data_querying = true
+
+                // 如果当前页数
+                if (cur_page < total_page){
+                    cur_page += 1
+                    // 去加载数据
+                    updateNewsData()
+                }
+            }
         }
     })
 })
@@ -54,10 +64,17 @@ function updateNewsData() {
         'page':cur_page
     }
     $.get('/news_list', params, function (resp) {
+        // 数据加载完毕设置【正在加载数据】 的变量为 false 代表当前没有在加载的数据
+        data_querying = false
         if (resp.error == '0'){
+            // 给总页数赋赋值
+            total_page = resp.data.total_page
             // 代表请求成功
             // 清除已有数据
-            $('.list_con').html('')
+            if (cur_page == 1){
+                $('.list_con').html('')
+            }
+
 
             // 添加请求成功在之后返回的数据
             for (var i=0;i<resp.data.news_dict_li.length;i++) {

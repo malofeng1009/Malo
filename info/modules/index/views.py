@@ -1,7 +1,7 @@
 from flask import render_template, current_app, session, request, jsonify
 # from info import redis_store
 from info.constants import CLICK_RANK_MAX_NEWS
-from info.models import User, News
+from info.models import User, News, Category
 from info.utils.response_code import RET
 from . import index_blu
 
@@ -88,10 +88,15 @@ def index():
     for news in news_list:
         news_dict_li.append(news.to_basic_dict())
     # 查询分类数据，通过模板的形式渲染出来
+    categories= Category.query.all()
 
+    category_li = []
+    for category in categories:
+        category_li.append(category.to_dict())
     data = {
         'user': user.to_dict() if user else None,
-        'news_dict_li': news_dict_li
+        'news_dict_li': news_dict_li,
+        'category_li': category_li
     }
     return render_template('news/index.html', data=data)
 # 在打开网页的时候，浏览器会默认请求根路径 + favicon.ico 作为网站标签的小图标

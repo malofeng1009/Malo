@@ -22,6 +22,7 @@ $(function () {
             // 重置分页参数
             cur_page = 1
             total_page = 1
+            data_querying = false
             updateNewsData()
         }
     })
@@ -79,7 +80,7 @@ function updateNewsData() {
             // 添加请求成功在之后返回的数据
             for (var i=0;i<resp.data.news_dict_li.length;i++) {
                 var news = resp.data.news_dict_li[i]
-                var content = '<li>'
+                    var content = '<li>'
                 content += '<a href="#" class="news_pic fl"><img src="' + news.index_image_url + '?imageView2/1/w/170/h/170"></a>'
                 content += '<a href="#" class="news_title fl">' + news.title + '</a>'
                 content += '<a href="#" class="news_detail fl">' + news.digest + '</a>'

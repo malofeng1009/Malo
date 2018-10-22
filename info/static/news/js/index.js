@@ -67,7 +67,7 @@ function updateNewsData() {
     $.get('/news_list', params, function (resp) {
         // 数据加载完毕设置【正在加载数据】 的变量为 false 代表当前没有在加载的数据
         data_querying = false
-        if (resp.error == '0'){
+        if (resp.errno == '0'){
             // 给总页数赋赋值
             total_page = resp.data.total_page
             // 代表请求成功

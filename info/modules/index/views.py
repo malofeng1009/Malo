@@ -52,7 +52,6 @@ def news_list():
         'current_page':current_page,
         'news_dict_li': new_dict_li,
     }
-
     return jsonify(error=RET.OK, errmsg='ok', data = data)
 @index_blu.route('/')
 def index():

@@ -1,11 +1,13 @@
-from flask import render_template, current_app, session
+from flask import render_template, current_app, session, g
 
 from info.constants import CLICK_RANK_MAX_NEWS
 from info.models import News, Category, User
 from info.modules.news import news_blu
+from info.utils.common import user_login_data
 
 
 @news_blu.route('/<int:news_id>')
+@user_login_data
 def news_blu(news_id):
     '''
     新闻详情页
@@ -14,15 +16,7 @@ def news_blu(news_id):
 
     '''
     # 查询用户登录信息
-    user_id = session.get('user_id', None)
-    # 通过id获取当前用户的信息
-    user = None
-    if user_id:
-        try:
-            user = User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
-
+    user = g.user
     # 右侧新闻排行的逻辑
     news_list = []
     try:

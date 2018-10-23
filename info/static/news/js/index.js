@@ -5,16 +5,20 @@ var data_querying = true;   // 是否正在向后台获取数据
 
 
 $(function () {
-    // 界面加载完成后去加载新闻数据
+    // 界面加载完成之后去加载新闻数据
     updateNewsData()
+
     // 首页分类切换
     $('.menu li').click(function () {
+        // 取到指定分类的cid
         var clickCid = $(this).attr('data-cid')
+        // 遍历所有的 li 移除身上的选中效果
         $('.menu li').each(function () {
             $(this).removeClass('active')
         })
+        // 给当前分类添加选中的状态
         $(this).addClass('active')
-
+        // 如果点击的分类与当前分类不一致
         if (clickCid != currentCid) {
             // 记录当前分类id
             currentCid = clickCid
@@ -22,7 +26,6 @@ $(function () {
             // 重置分页参数
             cur_page = 1
             total_page = 1
-            data_querying = false
             updateNewsData()
         }
     })
@@ -44,15 +47,17 @@ $(function () {
 
         if ((canScrollHeight - nowScroll) < 100) {
             // 判断页数，去更新新闻数据
-            if (!data_querying){
+
+            if (!data_querying) {
                 data_querying = true
 
-                // 如果当前页数
-                if (cur_page < total_page){
+                // 如果当前页数据如果小于总页数，那么才去加载数据
+                if (cur_page < total_page) {
                     cur_page += 1
                     // 去加载数据
                     updateNewsData()
                 }
+
             }
         }
     })
@@ -60,30 +65,31 @@ $(function () {
 
 function updateNewsData() {
     // 更新新闻数据
-    var params ={
-        'cid': currentCid,
-        'page':cur_page
+    var params = {
+        "cid": currentCid,
+        "page": cur_page
     }
-    $.get('/news_list', params, function (resp) {
-        // 数据加载完毕设置【正在加载数据】 的变量为 false 代表当前没有在加载的数据
+    $.get("/news_list", params, function (resp) {
+        // 数据加载完毕，设置【正在加载数据】的变量为 false 代表当前没有在加载数据
         data_querying = false
-        if (resp.error == '0'){
-            // 给总页数赋赋值
+        if (resp.error == "0") {
+            // 给总页数据赋值
             total_page = resp.data.total_page
             // 代表请求成功
             // 清除已有数据
-            if (cur_page == 1){
-                $('.list_con').html('')
+            if (cur_page == 1) {
+                $(".list_con").html("")
             }
 
+            // 添加请求成功之后返回的数据
 
-            // 添加请求成功在之后返回的数据
+            // 显示数据
             for (var i=0;i<resp.data.news_dict_li.length;i++) {
                 var news = resp.data.news_dict_li[i]
-                    var content = '<li>'
+                var content = '<li>'
                 content += '<a href="/news/'+news.id+'" class="news_pic fl"><img src="' + news.index_image_url + '?imageView2/1/w/170/h/170"></a>'
-                content += '<a href="/news/'+news.id+'" class="news_title fl">' + news.title + '</a>'
-                content += '<a href="/news/'+news.id+'" class="news_detail fl">' + news.digest + '</a>'
+                content += '<a href="/news/' + news.id + '" class="news_title fl">' + news.title + '</a>'
+                content += '<a href="/news/' + news.id + '" class="news_detail fl">' + news.digest + '</a>'
                 content += '<div class="author_info fl">'
                 content += '<div class="source fl">来源：' + news.source + '</div>'
                 content += '<div class="time fl">' + news.create_time + '</div>'
@@ -96,5 +102,4 @@ function updateNewsData() {
             alert(resp.errmsg)
         }
     })
-
 }

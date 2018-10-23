@@ -6,7 +6,6 @@ from info.utils.response_code import RET
 from . import index_blu
 
 
-
 @index_blu.route('/news_list')
 def news_list():
     '''
@@ -53,6 +52,8 @@ def news_list():
         'news_dict_li': new_dict_li,
     }
     return jsonify(error=RET.OK, errmsg='ok', data = data)
+
+
 @index_blu.route('/')
 def index():
     # session['name'] = 'itheima'
@@ -98,6 +99,8 @@ def index():
         'category_li': category_li
     }
     return render_template('news/index.html', data=data)
+
+
 # 在打开网页的时候，浏览器会默认请求根路径 + favicon.ico 作为网站标签的小图标
 @index_blu.route('/favicon.ico')
 def favicon():

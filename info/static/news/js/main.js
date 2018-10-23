@@ -177,6 +177,9 @@ $(function(){
             url: '/passport/register',
             type: 'post',
             contentType: 'application/json',
+            headers:{
+                'X-CSRFToken':getCookie('csrf_token')
+            },
             data: JSON.stringify(params),
             success: function (resp) {
                 if (resp.error == '0') {

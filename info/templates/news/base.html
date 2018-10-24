@@ -29,7 +29,7 @@
                 <!-- 用户登录后显示下面，隐藏上面 -->
                 <div class="user_login fr">
                     <img src="{% if data.user.avatar_url %} data.user_info.avatar_url {% else %}../../static/news/images/person01.png{% endif %}" class="lgin_pic">
-                    <a href="#">{{ data.user.nick_name }}</a>
+                    <a href="#" id="nick_name">{{ data.user.nick_name }}</a>
                     <a href="javascript:;" onclick="logout()">退出</a>
                 </div>
             {% else %}
@@ -45,7 +45,9 @@
     <div class="conter_con">
         {% block contentBlock %}
         {% endblock %}
-        <div class="rank_con fr">
+
+        {% block randBlock %}
+            <div class="rank_con fr">
             {% block authorBlock %}
 
             {% endblock %}
@@ -59,6 +61,7 @@
                 {% endfor %}
             </ul>
         </div>
+        {% endblock %}
 
     </div>
     <div class="footer">

@@ -5,7 +5,18 @@ from info.utils.common import user_login_data
 from info.utils.image_storage import storage
 from info.utils.response_code import RET
 
-@profile_blu.route('/collection', methods=["POST", 'GET'])
+@profile_blu.route('/news_release', methods=['POST', 'GET'])
+@user_login_data
+def news_release():
+    '''
+    用户新闻发布
+    :return:
+    '''
+    data = {
+
+    }
+    return render_template('news/user_news_release.html', data=data)
+@profile_blu.route('/collection', methods=['POST', 'GET'])
 @user_login_data
 def user_collection():
     '''
@@ -44,7 +55,7 @@ def user_collection():
     }
     return render_template('news/user_collection.html', data = data)
 
-@profile_blu.route('/pass_info', method=['POST', 'GET'])
+@profile_blu.route('/pass_info', methods=['POST', 'GET'])
 @user_login_data
 def pass_info():
     '''
@@ -59,12 +70,12 @@ def pass_info():
     new_password = request.json.get('new_password')
 
     # 校验参数
-    if not all[( old_password,new_password)]:
-        return  jsonify(error=RET.PARAMERR, errmsg='参数错误')
+    if not all([old_password,new_password]):
+        return jsonify(error=RET.PARAMERR, errmsg='参数错误')
 
     # 判断旧密码是否是正确
     user = g.user
-    if user.check_password(old_password):
+    if not user.check_password(old_password):
         return jsonify(error=RET.PWDERR, errmsg='原密码错误')
 
     # 设置新密码
@@ -93,13 +104,15 @@ def pic_info():
     # 2.上传头像
     try:
         key = storage(avatar)
+        print(key)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(error=RET.THIRDERR, errmsg='上传头像失败')
 
     # 3.保存头像地址
     user.avatar_url = key
-    return jsonify(error=RET.OK, errmsg='OK', data={'avatar_url':constants.QINIU_DOMIN_PREFIX + key})
+
+    return jsonify(error=RET.OK, errmsg='OK', data = {'user':user.to_dict() if user else None})
 
 @profile_blu.route('/base_info', methods=['POST', 'GET'])
 @user_login_data

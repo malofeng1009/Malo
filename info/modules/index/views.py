@@ -93,6 +93,8 @@ def index():
     category_li = []
     for category in categories:
         category_li.append(category.to_dict())
+
+    # print(user.to_dict())
     data = {
         'user': user.to_dict() if user else None,
         'news_dict_li': news_dict_li,

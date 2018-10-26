@@ -26,7 +26,7 @@ def news_list():
         current_app.logger.error(e)
         return jsonify(error=RET.PARAMERR, errmsg='参数错误')
 
-    filters = []
+    filters = [News.status == 0]
     if cid != 1: # 查询的不是最新的数据
         # 需要添加条件
         filters.append(News.category_id == cid)
@@ -45,6 +45,7 @@ def news_list():
     new_dict_li = []
     for news in news_model_list:
         new_dict_li.append(news.to_basic_dict())
+
 
     data = {
         'total_page':total_page,

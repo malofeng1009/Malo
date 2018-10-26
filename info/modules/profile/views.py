@@ -1,5 +1,6 @@
 from flask import render_template, g, jsonify, redirect, request, current_app, session
 from info import db, constants
+from info.models import Category, News
 from info.modules.profile import profile_blu
 from info.utils.common import user_login_data
 from info.utils.image_storage import storage
@@ -12,11 +13,75 @@ def news_release():
     用户新闻发布
     :return:
     '''
-    
-    data = {
+    if request.method == 'GET':
+        # 加载新闻分类
+        categories = []
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+        category_dict_li = []
+        for category in categories:
+            category_dict_li.append(category.to_dict())
+        # 移除最新的分类
+        category_dict_li.pop(0)
 
-    }
-    return render_template('news/user_news_release.html', data=data)
+        return render_template('news/user_news_release.html', data={'categories': category_dict_li})
+
+    # 1.获取要提交的数据
+    # 标题
+    title = request.form.get('title')
+    # 新闻来源
+    source = '个人发布'
+    # 摘要
+    digest = request.form.get('digest')
+    # 新闻内容
+    content = request.form.get('content')
+    # 索引图片
+    index_image = request.files.get('index_image')
+    # 分类id
+    category_id = request.form.get('category_id')
+
+    # 校验参数
+    # 2.1 判断数据是否有值
+    if not all([title, source, digest, category_id, index_image, content]):
+        return jsonify(error=RET.PWDERR, errmsg='参数错误')
+    # 2.2
+    try:
+        category_id = int(category_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.PARAMERR, errmsg='参数错误')
+
+    # 3. 取到图片，将图片上传到七牛云
+    try:
+        index_image_data = index_image.read()
+        key = storage(index_image_data)
+        # 上传到七牛云
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.PARAMERR, errmsg='参数有误')
+
+    news = News()
+    news.title = title
+    news.digest = digest
+    news.source = source
+    news.index_image_url = constants.QINIU_DOMIN_PREFIX + key
+    news.content = content
+    news.category_id = category_id
+    news.user_id = g.user.id
+    # 1代表审核状态
+    news.status = 1
+
+    try:
+        db.session.add(news)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(error=RET.DBERR, errmsg='数据保存失败')
+    return jsonify(error=RET.OK, errmsg='OK')
+
 @profile_blu.route('/collection', methods=['POST', 'GET'])
 @user_login_data
 def user_collection():

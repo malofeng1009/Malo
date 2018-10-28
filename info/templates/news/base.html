@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <title>{% block titleBlock %}{% endblock %}</title>
     <link rel="stylesheet" type="text/css" href="../../static/news/css/reset.css">
+    {% block cssBlock %}
+
+    {% endblock %}
     <link rel="stylesheet" type="text/css" href="../../static/news/css/main.css">
     <script type="text/javascript" src="../../static/news/js/jquery-1.12.4.min.js"></script>
     <script type="text/javascript" src="../../static/news/js/main.js"></script>
     {% block scriptBlock %}
+
     {% endblock %}
 </head>
 <body>
@@ -28,8 +32,8 @@
             {% if data.user %}
                 <!-- 用户登录后显示下面，隐藏上面 -->
                 <div class="user_login fr">
-                    <img src="{% if data.user.avatar_url %} {{data.user.avatar_url}} {% else %}../../static/news/images/person01.png{% endif %}" class="lgin_pic">
-                    <a href="#" id="nick_name">{{ data.user.nick_name }}</a>
+                    <img src="{% if data.user.avatar_url %} {{ data.user.avatar_url }} {% else %}../../static/news/images/person01.png{% endif %}" class="lgin_pic">
+                    <a href="{{ url_for('profile.user_info') }}" id="nick_name">{{ data.user.nick_name }}</a>
                     <a href="javascript:;" onclick="logout()">退出</a>
                 </div>
             {% else %}
@@ -44,42 +48,44 @@
 
     <div class="conter_con">
         {% block contentBlock %}
+
         {% endblock %}
 
-        {% block randBlock %}
+        {% block rankBlock %}
             <div class="rank_con fr">
-            {% block authorBlock %}
+                {% block authorBlock %}
 
-            {% endblock %}
+                {% endblock %}
 
-            <div class="rank_title">
-                <h3>点击排行</h3>
+                <div class="rank_title">
+                    <h3>点击排行</h3>
+                </div>
+                <ul class="rank_list">
+                    {% for news in data.news_dict_li %}
+                        <li><span class="{{ loop.index0 | index_class }}">{{ loop.index }}</span><a href="#">{{ news.title }}</a></li>
+                    {% endfor %}
+                </ul>
             </div>
-            <ul class="rank_list">
-                {% for news in data.news_dict_li %}
-                    <li><span class="{{ loop.index0 | index_class }}">{{ loop.index }}</span><a href="#">{{ news.title }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
         {% endblock %}
 
     </div>
+
     {% block bottomBlock %}
-    <div class="footer">
-        <div class="footer_links">
-            <a href="">关于我们</a>
-            <span>|</span>
-            <a href="">联系我们</a>
-            <span>|</span>
-            <a href="">招聘人才</a>
-            <span>|</span>
-            <a href="">友情链接</a>
+        <div class="footer">
+            <div class="footer_links">
+                <a href="">关于我们</a>
+                <span>|</span>
+                <a href="">联系我们</a>
+                <span>|</span>
+                <a href="">招聘人才</a>
+                <span>|</span>
+                <a href="">友情链接</a>
+            </div>
+            <p class="copyright">
+                CopyRight © 2018 新经资讯信息技术有限公司 All Rights Reserved<br />
+    电话：010-****888    京ICP备*******8号
+            </p>
         </div>
-        <p class="copyright">
-            CopyRight © 2018 新经资讯信息技术有限公司 All Rights Reserved<br />
-        电话：010-****888    京ICP备*******8号
-        </p>
-    </div>
     {% endblock %}
 
     <!-- 登录表单 -->

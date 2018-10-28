@@ -1,11 +1,344 @@
 import time
 from datetime import datetime, timedelta
-from flask import render_template, request, session, redirect, url_for, jsonify, g, current_app
+from flask import render_template, request, session, redirect, url_for, jsonify, g, current_app, abort
 
-from info.models import User
+from info import constants, db
+from info.models import User, News, Category
+from info.modules import news
 from info.modules.admin import admin_blu
 from info.utils.common import user_login_data
+from info.utils.image_storage import storage
 from info.utils.response_code import RET
+
+@admin_blu.route('/news_type', methods=["GET", "POST"])
+def news_type():
+
+    if request.method == "GET":
+        # 查询分类数据
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_type.html', errmsg="查询数据错误")
+
+        category_dict_li = []
+        for category in categories:
+            # 取到分类的字典
+            cate_dict = category.to_dict()
+            category_dict_li.append(cate_dict)
+
+        # 移除最新的分类
+        category_dict_li.pop(0)
+
+        data = {
+            "categories": category_dict_li
+        }
+
+        return render_template('admin/news_type.html', data=data)
+
+    # 新增或者添加分类
+    # 1. 取参数
+    cname = request.json.get("name")
+    # 如果传了cid，代表是编辑已存在的分类
+    cid = request.json.get("id")
+
+    if not cname:
+        return jsonify(error=RET.PARAMERR, errmsg="参数错误")
+
+    if cid:
+        # 有 分类 id 代表查询相关数据
+        try:
+            cid = int(cid)
+            category = Category.query.get(cid)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(error=RET.PARAMERR, errmsg="参数错误")
+
+        if not category:
+            return jsonify(error=RET.NODATA, errmsg="未查询到分类数据")
+        category.name = cname
+    else:
+        category = Category()
+        category.name = cname
+        db.session.add(category)
+
+    return jsonify(error=RET.OK, errmsg="OK")
+
+@admin_blu.route('/news_edit_detail', methods=['POST', 'GET'])
+def news_edit_detail():
+
+    if request.method == "GET":
+        # 查询点击的新闻的相关数据并传入到模板中
+        news_id = request.args.get("news_id")
+
+        if not news_id:
+            abort(404)
+
+        try:
+            news_id = int(news_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_edit_detail.html', errmsg="参数错误")
+
+        try:
+            news = News.query.get(news_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_edit_detail.html', errmsg="查询数据错误")
+
+        if not news:
+            return render_template('admin/news_edit_detail.html', errmsg="未查询到数据")
+
+        # 查询分类数据
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_edit_detail.html', errmsg="查询数据错误")
+
+        category_dict_li = []
+        for category in categories:
+            # 取到分类的字典
+            cate_dict = category.to_dict()
+            # 判断当前遍历到的分类是否是当前新闻的分类，如果是，则添加is_selected为true
+            if category.id == news.category_id:
+                cate_dict["is_selected"] = True
+            category_dict_li.append(cate_dict)
+
+        # 移除最新的分类
+        category_dict_li.pop(0)
+
+        data = {
+            "news": news.to_dict(),
+            "categories": category_dict_li
+        }
+
+        return render_template('admin/news_edit_detail.html', data=data)
+
+    # 取到Post进来的数据
+    news_id = request.form.get("news_id")
+    title = request.form.get("title")
+    digest = request.form.get("digest")
+    content = request.form.get("content")
+    index_image = request.files.get("index_image")
+    category_id = request.form.get("category_id")
+    # 1.1 判断数据是否有值
+    if not all([title, digest, content, category_id]):
+        return jsonify(error=RET.PARAMERR, errmsg="参数有误")
+
+    # 查询指定id的
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.DBERR, errmsg="数据查询失败")
+
+    if not news:
+        return jsonify(error=RET.NODATA, errmsg="未查询到新闻数据")
+
+    # 1.2 尝试读取图片
+    if index_image:
+        try:
+            index_image = index_image.read()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(error=RET.PARAMERR, errmsg="参数有误")
+
+        # 2. 将标题图片上传到七牛
+        try:
+            key = storage(index_image)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(error=RET.THIRDERR, errmsg="上传图片错误")
+        news.index_image_url = constants.QINIU_DOMIN_PREFIX + key
+
+    # 3. 设置相关数据
+    news.title = title
+    news.digest = digest
+    news.content = content
+    news.category_id = category_id
+
+    return jsonify(error=RET.OK, errmsg="OK")
+
+@admin_blu.route('/news_edit')
+def news_edit():
+    '''
+    新闻编辑
+    :return:
+    '''
+    page = request.args.get('p', 1)
+    keywords = request.args.get('keywords', None)
+
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    news_list = []
+    current_page = 1
+    total_page = 1
+
+    filters = [News.status == 0]
+    # 如果添加关键字， 那么就添加关键字搜索
+    if keywords:
+        filters.append(News.title.contains(keywords))
+    try:
+        paginate = News.query.filter(*filters) \
+            .order_by(News.create_time.desc()) \
+            .paginate(page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
+        news_list = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_page.logger.error(e)
+
+    news_dict_list = []
+    for news in news_list:
+        news_dict_list.append(news.to_basic_dict())
+
+    context = {
+        'total_page': total_page,
+        'current_page': current_page,
+        'news_list': news_dict_list
+    }
+
+    return render_template('admin/news_edit.html', data =context)
+
+@admin_blu.route('/news_review_action', methods=['POST'])
+def news_review_action():
+    # 1.接收参数
+    news_id = request.json.get('news_id')
+    action = request.json.get('action')
+    # 2.参数校验
+    if not all([news_id, action]):
+        return jsonify(error=RET.PARAMERR, errmsg='参数错误')
+    if action not in ('accept', 'reject'):
+        return jsonify(error=RET.PARAMERR, errmsg='参数错误')
+    # 查询到指定的新闻数据
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.DBERR, errmsg='数据查询失败')
+    if action == 'accept':
+        # 代表接受
+        news.status = 0
+        # 代表拒绝
+        reason = request.json.get('reason')
+        if not reason:
+            return jsonify(error=RET.PARAMERR, ermsg='请输入拒绝原因')
+        news.status = -1
+        news.reason = reason
+
+    return jsonify(error=RET.OK, errmsg='OK')
+
+@admin_blu.route('/news_review_detail/<int:news_id>')
+def news_review_detail(news_id):
+    '''
+    新闻审核
+    :param news_id:
+    :return:
+    '''
+    news = None
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not news:
+        return  render_template('admin/news_review_detail.html', data={'errmsg': '未查到此新闻'})
+
+    # 返回数据
+    data = {
+        'news': news.to_dict()
+    }
+    return render_template('admin/news_review_detail.html', data=data)
+
+@admin_blu.route('/news_review')
+def news_review():
+    '''
+    返回待审核新闻列表
+    :return:
+    '''
+    page = request.args.get('p', 1)
+    keywords = request.args.get('keywords', None)
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    news_list = []
+    current_page = 1
+    total_page = 1
+
+    filters = [News.status != 0]
+    # 如果关键字存在， 那么就添加关键字搜索
+    if keywords:
+        filters.append(News.title.contains(keywords))
+    try:
+        paginate = News.query.filter(*filters) \
+            .order_by(News.create_time.desc()) \
+            .paginate(page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
+
+        news_list = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_list = []
+    for news in news_list:
+        news_dict_list.append(news.to_review_dict())
+
+    context = {
+        'total_page' : total_page,
+        'current_page' : current_page,
+        'news_list' : news_dict_list
+    }
+
+    return render_template('admin/news_review.html', data=context)
+
+@admin_blu.route('/user_list')
+@user_login_data
+def user_list():
+    '''
+    用户列表
+    :return:
+    '''
+    page = request.args.get('page', 1)
+
+    try:
+        page= int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    users = []
+    current_page = 1
+    total_page = 1
+
+    try:
+        paginate = User.query.filter(User.is_admin==False).paginate(page, constants.ADMIN_USER_PAGE_MAX_COUNT, False)
+        users = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_page.logger.error(e)
+
+    # 进行模型列表转字典
+    user_dict_li =[]
+    for user in users:
+        user_dict_li.append(user.to_admin_dict())
+
+    data = {
+        'users' : user_dict_li,
+        'total_page' : total_page,
+        'current_page' : current_page
+    }
+
+    return render_template('admin/user_list.html', data=data)
 
 @admin_blu.route('/user_count')
 @user_login_data
@@ -76,22 +409,7 @@ def user_count():
 
     return render_template('admin/user_count.html', data=data)
 
-
-@admin_blu.route('/logout')
-@user_login_data
-def logout():
-    '''
-    退出登录
-    :return:
-    '''
-    session.pop('user_id', None)
-    session.pop('mobile', None)
-    session.pop('nick_name', None)
-    session.pop('is_admin', None)
-
-    return jsonify(error=RET.OK, errmsg='退出成功')
-
-@admin_blu.route('/index', methods=['POST','GET'])
+@admin_blu.route('/index')
 @user_login_data
 def index():
     '''
@@ -108,13 +426,13 @@ def login():
     后台管理员登录
     :return:
     '''
-    if  request.method == 'GET':
+    if request.method == 'GET':
 
         # 判断当前是否有登陆， 如果有登录直接重定向到管理员后台主页
         user_id = session.get('user_id', None)
         is_admin = session.get('is_admin', False)
         if user_id and is_admin:
-            return render_template('admin/index.html')
+            return redirect(url_for('admin.index'))
 
         return render_template('admin/login.html')
 
@@ -128,6 +446,7 @@ def login():
     try:
         user = User.query.filter(User.mobile == username, User.is_admin == True).first()
     except Exception as e:
+        current_app.logger.error(e)
         return render_template('admin/login.html', errmsg='用户信息查询失败')
 
     if not user:
@@ -144,4 +463,4 @@ def login():
     session['is_admin'] = user.is_admin
 
     # 跳转到后台管理页面
-    return render_template('admin/index.html')
+    return redirect(url_for('admin.index'))

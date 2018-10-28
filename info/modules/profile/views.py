@@ -1,10 +1,143 @@
-from flask import render_template, g, jsonify, redirect, request, current_app, session
+from flask import render_template, g, jsonify, redirect, request, current_app, session, abort
 from info import db, constants
-from info.models import Category, News
+from info.models import Category, News, User
 from info.modules.profile import profile_blu
 from info.utils.common import user_login_data
 from info.utils.image_storage import storage
 from info.utils.response_code import RET
+
+
+@profile_blu.route('/other_news_list')
+def other_news_list():
+    '''
+    返回指定用户发布的新闻
+    :return:
+    '''
+    # 1.取参数
+    other_id = request.args.get('user_id')
+    page = request.args.get('p', 1)
+    # 2.判断参数
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.PARAMERR, errmsg='参数错误')
+
+    try:
+        other = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.DATAEXIST, errmsg='数据查询失败')
+
+    if not other:
+        return jsonify(error=RET.NODATA, errmsg='当前用户不存在')
+
+
+    try:
+        paginate = other.news_list.paginate(page, constants.USER_COLLECTION_MAX_NEWS,False)
+        # 获取当前页数据
+        news_li = paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(error=RET.DBERR, errmsg='数据查询失败')
+
+    news_dict_li = []
+    for news_item in news_li:
+        news_dict_li.append(news_item.to_basic_dict())
+
+    data = {
+        'news_list' : news_dict_li,
+        'current_page' : current_app,
+        'total_page' : total_page
+    }
+
+    return jsonify(error=RET.OK, errmsg='OK', data=data)
+
+@profile_blu.route('/other_info')
+@user_login_data
+def other_info():
+    '''
+    其他用户页面
+    :return:
+    '''
+    user = g.user
+    # 去查询其他人的用户信息
+    other_id = request.args.get('user_id')
+
+    if not other_id:
+        abort(404)
+
+    # 查询指定 id 的用户信息
+    try:
+        other = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not other:
+        abort(404)
+
+    is_followed = False
+    # if 当前新闻有作者， 并且 当前登录用户已关注过这个用户
+    if other and user:
+        # if user 是否关注过 news.user
+        if other in user.followed:
+            is_followed = True
+
+    data = {
+        'is_followed' : is_followed,
+        'user' : g.user.to_dict() if g.user else None,
+        'other)info' : other.to_dict()
+    }
+
+    return render_template('news/other.html', data=data)
+
+@profile_blu.route('/user_follow')
+@user_login_data
+def user_follow():
+    '''
+    我的关注
+    :return:
+    '''
+    # 获取页数
+    p = request.args.get('p', 1)
+    try:
+        p = int(p)
+    except Exception as e:
+        current_app.logger.error(e)
+        p = 1
+    #取到当前用户
+    user = g.user
+
+    follows = []
+    current_page = 1
+    total_page = 1
+    try:
+        paginate = user.followed.paginate(p, constants.USER_FOLLOWED_MAX_COUNT, False)
+        # 获取当前页数据
+        follows =paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    user_dict_li =[]
+
+    for follow_user in follows:
+        user_dict_li.append(follow_user.to_dict())
+
+    data = {
+        'users' : user_dict_li,
+        'current_page' : current_page,
+        'total_page' : total_page
+    }
+
+    return render_template('news/user_follow.html', data=data)
 
 @profile_blu.route('/news_list', methods=['POST', 'GET'])
 @user_login_data
@@ -261,6 +394,6 @@ def user_info():
         # 代表没有登录，重定向到首页
         return redirect('/')
 
-    return  render_template('news/user.html', data={'user': g.user.to_dict()})
+    return render_template('news/user.html', data={'user': g.user.to_dict()})
 
 

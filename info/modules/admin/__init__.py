@@ -1,14 +1,20 @@
-from flask import Blueprint, session, request, redirect, url_for
+# 新闻详情模块的蓝图
+
+from flask import Blueprint
 
 # 创建蓝图对象
-admin_blu = Blueprint('admin', __name__, url_prefix='/admin')
+from flask import redirect
+from flask import request
+from flask import session
+from flask import url_for
+
+admin_blu = Blueprint("admin", __name__)
 
 from . import views
 
 
 @admin_blu.before_request
 def check_admin():
-    # print("admin before_request")
     # if 不是管理员，那么直接跳转到主页
     is_admin = session.get("is_admin", False)
     # if not is_admin and 当前访问的url不是管理登录页:

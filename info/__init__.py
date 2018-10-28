@@ -50,27 +50,26 @@ def create_app(config_name):
     # 设置session的保存位置
     Session(app)
 
+    from info.utils.common import do_index_class
+    app.add_template_filter(do_index_class, 'index_class')
+    # 注册蓝图
+    from info.utils.common import user_login_data
+
+    @app.errorhandler(404)
+    @user_login_data
+    def page_not_found(e):
+        user = g.user
+        data = {"user": user.to_dict() if user else None}
+        return render_template('news/404.html', data=data)
+
     @app.after_request
     def after_request(response):
         # 生成一个随机的 csrf_token 的值
         csrf_token= generate_csrf()
         # 设置一个 cookie
         response.set_cookie('csrf_token', csrf_token)
-        return  response
+        return response
     # 添加模板过滤器
-
-    from info.utils.common import user_login_data
-    @app.errorhandler(404)
-    @user_login_data
-    def page_not_found():
-        user = g.user
-        data = {"user_info": user.to_dict() if user else None}
-        return render_template('news/404.html', data=data)
-        return app
-
-    from info.utils.common import do_index_class
-    app.add_template_filter(do_index_class,'index_class')
-    # 注册蓝图
 
     from info.modules.index import index_blu
     app.register_blueprint(index_blu)
@@ -82,5 +81,8 @@ def create_app(config_name):
     app.register_blueprint(news_blu)
 
     from info.modules.admin import admin_blu
-    app.register_blueprint(admin_blu)
+    app.register_blueprint(admin_blu, url_prefix="/admin")
+
+    from info.modules.profile import profile_blu
+    app.register_blueprint(profile_blu)
     return app
